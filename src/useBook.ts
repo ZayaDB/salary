@@ -10,7 +10,7 @@ import {
   writeRoomToUrl,
 } from './storage'
 import { canUseCloud, pullRoom, pushRoom } from './sync'
-import type { AppData, DayEntry, InsuranceRates, SyncStatus } from './types'
+import type { AppData, DayEntry, SyncStatus } from './types'
 
 function newer(left: AppData, right: AppData): AppData {
   return left.updatedAt >= right.updatedAt ? left : right
@@ -170,7 +170,7 @@ export function useBook() {
   )
 
   const update = useCallback(
-    (patch: Partial<Pick<AppData, 'contractSalary' | 'rates' | 'roomId'>>) => {
+    (patch: Partial<Omit<AppData, 'version' | 'updatedAt' | 'days'>>) => {
       if (!dataRef.current) return
       persist({ ...dataRef.current, ...patch })
     },
@@ -184,14 +184,6 @@ export function useBook() {
       if (entry) days[key] = entry
       else delete days[key]
       persist({ ...dataRef.current, days })
-    },
-    [persist],
-  )
-
-  const replaceRates = useCallback(
-    (rates: InsuranceRates) => {
-      if (!dataRef.current) return
-      persist({ ...dataRef.current, rates })
     },
     [persist],
   )
@@ -212,7 +204,6 @@ export function useBook() {
     join,
     update,
     setDay,
-    replaceRates,
     replaceAll,
   }
 }

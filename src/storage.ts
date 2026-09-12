@@ -1,4 +1,5 @@
-import type { AppData, InsuranceRates } from './types'
+import { calcInsuranceFromRates } from './calc'
+import type { AppData, InsuranceAmounts, InsuranceMode, InsuranceRates } from './types'
 
 export const STORAGE_KEY = 'salary-book-v1'
 
@@ -28,11 +29,20 @@ export function isRoomId(value: string): boolean {
 }
 
 export function createBook(input: { contractSalary: number; roomId: string }): AppData {
+  const rates = { ...DEFAULT_RATES }
+  const computed = calcInsuranceFromRates(input.contractSalary, rates)
   return {
     version: 1,
     updatedAt: Date.now(),
     contractSalary: input.contractSalary,
-    rates: { ...DEFAULT_RATES },
+    rates,
+    insuranceMode: 'rate',
+    amounts: {
+      pension: computed.pension,
+      health: computed.health,
+      longTermCare: computed.longTermCare,
+      employment: computed.employment,
+    },
     days: {},
     roomId: normalizeRoomId(input.roomId),
   }
@@ -40,6 +50,18 @@ export function createBook(input: { contractSalary: number; roomId: string }): A
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function parseAmounts(value: unknown): InsuranceAmounts | null {
+  if (!isRecord(value)) return null
+  const amounts: InsuranceAmounts = {
+    pension: Number(value.pension),
+    health: Number(value.health),
+    longTermCare: Number(value.longTermCare),
+    employment: Number(value.employment),
+  }
+  if (Object.values(amounts).some((item) => !Number.isFinite(item) || item < 0)) return null
+  return amounts
 }
 
 export function parseBook(value: unknown): AppData | null {
@@ -60,6 +82,17 @@ export function parseBook(value: unknown): AppData | null {
 
   if (Object.values(rates).some((rate) => !Number.isFinite(rate))) return null
 
+  const contractSalary = Math.max(0, Math.round(value.contractSalary))
+  const computed = calcInsuranceFromRates(contractSalary, rates)
+  const parsedAmounts = parseAmounts(value.amounts)
+  const amounts: InsuranceAmounts = parsedAmounts ?? {
+    pension: computed.pension,
+    health: computed.health,
+    longTermCare: computed.longTermCare,
+    employment: computed.employment,
+  }
+  const insuranceMode: InsuranceMode = value.insuranceMode === 'amount' ? 'amount' : 'rate'
+
   const days: AppData['days'] = {}
   for (const [key, entry] of Object.entries(value.days)) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || !isRecord(entry)) continue
@@ -72,8 +105,10 @@ export function parseBook(value: unknown): AppData | null {
   return {
     version: 1,
     updatedAt: value.updatedAt,
-    contractSalary: Math.max(0, Math.round(value.contractSalary)),
+    contractSalary,
     rates,
+    insuranceMode,
+    amounts,
     days,
     roomId: normalizeRoomId(value.roomId),
   }

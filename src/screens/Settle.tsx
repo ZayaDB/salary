@@ -1,5 +1,6 @@
-import { settleMonth } from '../calc'
-import { formatMan, formatMoney, formatMonthTitle } from '../format'
+import { calcInsurance, settleMonth } from '../calc'
+import { formatMoney, formatMonthTitle } from '../format'
+import { InsuranceEditor } from '../components/InsuranceEditor'
 import { MonthBar } from '../components/MonthBar'
 import type { AppData, MonthCursor } from '../types'
 
@@ -7,11 +8,12 @@ type Props = {
   data: AppData
   cursor: MonthCursor
   onCursor: (next: MonthCursor) => void
+  onInsurance: (patch: Pick<AppData, 'rates' | 'insuranceMode' | 'amounts'>) => void
 }
 
-export function Settle({ data, cursor, onCursor }: Props) {
+export function Settle({ data, cursor, onCursor, onInsurance }: Props) {
   const settle = settleMonth(data, cursor)
-  const { insurance } = settle
+  const insurance = calcInsurance(data)
 
   async function copySummary() {
     const month = formatMonthTitle(cursor.year, cursor.month)
@@ -83,30 +85,14 @@ export function Settle({ data, cursor, onCursor }: Props) {
       </section>
 
       <section className="card">
-        <p className="section-title">4대보험 · 계약 {formatMan(data.contractSalary)} 원 기준</p>
+        <p className="section-title">4대보험 직접 넣기</p>
+        <InsuranceEditor data={data} onChange={onInsurance} />
         <div className="rows">
-          <div>
-            <span>국민연금 {data.rates.pension}%</span>
-            <b>{formatMoney(insurance.pension)}</b>
-          </div>
-          <div>
-            <span>건강보험 {data.rates.health}%</span>
-            <b>{formatMoney(insurance.health)}</b>
-          </div>
-          <div>
-            <span>장기요양 보험료의 {data.rates.longTermCare}%</span>
-            <b>{formatMoney(insurance.longTermCare)}</b>
-          </div>
-          <div>
-            <span>고용보험 {data.rates.employment}%</span>
-            <b>{formatMoney(insurance.employment)}</b>
-          </div>
           <div className="is-total">
             <span>보험 합계</span>
             <b>{formatMoney(insurance.total)}</b>
           </div>
         </div>
-        <p className="hint">장기요양은 월급이 아니라 건강보험료에 비율을 곱해요. 요율은 설정에서 바꿀 수 있어요.</p>
       </section>
 
       <button type="button" className="btn btn--primary btn--block" onClick={() => void copySummary()}>

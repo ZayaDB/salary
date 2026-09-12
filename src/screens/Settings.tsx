@@ -1,61 +1,32 @@
 import { useEffect, useState } from 'react'
-import { DEFAULT_RATES, isRoomId, normalizeRoomId, parseBook } from '../storage'
+import { isRoomId, normalizeRoomId, parseBook } from '../storage'
 import { formatMoney } from '../format'
-import type { AppData, InsuranceRates, SyncStatus } from '../types'
+import { InsuranceEditor } from '../components/InsuranceEditor'
+import type { AppData, SyncStatus } from '../types'
 
 type Props = {
   data: AppData
   status: SyncStatus
   cloudReady: boolean
   onSalary: (value: number) => void
-  onRates: (rates: InsuranceRates) => void
+  onInsurance: (patch: Pick<AppData, 'rates' | 'insuranceMode' | 'amounts'>) => void
   onJoin: (roomId: string) => void
   onReplace: (next: AppData) => void
 }
 
-const RATE_FIELDS: Array<{ key: keyof InsuranceRates; label: string; hint: string }> = [
-  { key: 'pension', label: '국민연금', hint: '월급의 %' },
-  { key: 'health', label: '건강보험', hint: '월급의 %' },
-  { key: 'longTermCare', label: '장기요양', hint: '건강보험료의 %' },
-  { key: 'employment', label: '고용보험', hint: '월급의 %' },
-]
-
-export function Settings({ data, status, cloudReady, onSalary, onRates, onJoin, onReplace }: Props) {
+export function Settings({ data, status, cloudReady, onSalary, onInsurance, onJoin, onReplace }: Props) {
   const [man, setMan] = useState(String(data.contractSalary / 10000))
-  const [rateText, setRateText] = useState({
-    pension: String(data.rates.pension),
-    health: String(data.rates.health),
-    longTermCare: String(data.rates.longTermCare),
-    employment: String(data.rates.employment),
-  })
   const [room, setRoom] = useState('')
   const [copied, setCopied] = useState('')
 
   useEffect(() => {
     setMan(String(data.contractSalary / 10000))
-    setRateText({
-      pension: String(data.rates.pension),
-      health: String(data.rates.health),
-      longTermCare: String(data.rates.longTermCare),
-      employment: String(data.rates.employment),
-    })
-  }, [data.contractSalary, data.rates])
+  }, [data.contractSalary])
 
   function saveSalary() {
     const value = Number(man)
     if (!Number.isFinite(value) || value <= 0) return
     onSalary(Math.round(value * 10000))
-  }
-
-  function saveRates(nextText = rateText) {
-    const next = {
-      pension: Number(nextText.pension),
-      health: Number(nextText.health),
-      longTermCare: Number(nextText.longTermCare),
-      employment: Number(nextText.employment),
-    }
-    if (Object.values(next).some((rate) => !Number.isFinite(rate) || rate < 0)) return
-    onRates(next)
   }
 
   async function copyText(text: string, label: string) {
@@ -130,39 +101,9 @@ export function Settings({ data, status, cloudReady, onSalary, onRates, onJoin, 
       </section>
 
       <section className="card">
-        <p className="section-title">4대보험 요율</p>
-        <p className="hint">2026년 근로자 부담을 먼저 넣었어요. 고지서와 다르면 여기 숫자를 바꾸면 돼요. 산재보험은 사장님이 내서 빼지 않았어요.</p>
-        {RATE_FIELDS.map((field) => (
-          <label key={field.key} className="field field--slim">
-            <span>
-              {field.label}
-              <small> {field.hint}</small>
-            </span>
-            <input
-              inputMode="decimal"
-              value={rateText[field.key]}
-              onChange={(event) =>
-                setRateText((prev) => ({ ...prev, [field.key]: event.target.value }))
-              }
-              onBlur={() => saveRates()}
-            />
-          </label>
-        ))}
-        <button
-          type="button"
-          className="text-btn"
-          onClick={() => {
-            setRateText({
-              pension: String(DEFAULT_RATES.pension),
-              health: String(DEFAULT_RATES.health),
-              longTermCare: String(DEFAULT_RATES.longTermCare),
-              employment: String(DEFAULT_RATES.employment),
-            })
-            onRates(DEFAULT_RATES)
-          }}
-        >
-          2026년 기본값으로 되돌리기
-        </button>
+        <p className="section-title">4대보험</p>
+        <p className="hint">정산 탭에서도 같은 숫자를 바꿀 수 있어요. 산재보험은 사장님이 내서 빼지 않았어요.</p>
+        <InsuranceEditor data={data} onChange={onInsurance} />
       </section>
 
       <section className="card">

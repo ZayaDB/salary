@@ -77,14 +77,21 @@ export default function App() {
               onOpenDay={setEditorKey}
             />
           ) : null}
-          {tab === 'settle' ? <Settle data={book.data} cursor={cursor} onCursor={changeMonth} /> : null}
+          {tab === 'settle' ? (
+            <Settle
+              data={book.data}
+              cursor={cursor}
+              onCursor={changeMonth}
+              onInsurance={(patch) => book.update(patch)}
+            />
+          ) : null}
           {tab === 'settings' ? (
             <Settings
               data={book.data}
               status={book.status}
               cloudReady={book.cloudReady}
               onSalary={(contractSalary) => book.update({ contractSalary })}
-              onRates={book.replaceRates}
+              onInsurance={(patch) => book.update(patch)}
               onJoin={(roomId) => void book.join(roomId)}
               onReplace={book.replaceAll}
             />

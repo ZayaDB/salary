@@ -1,4 +1,4 @@
-import { monthDaysInGrid, monthPrefix, todayKey } from '../calc'
+import { monthDaysInGrid, monthPrefix, monthTotal, monthTotalUntil, todayKey } from '../calc'
 import { formatMoney, WEEKDAYS } from '../format'
 import { MonthBar } from '../components/MonthBar'
 import type { AppData, MonthCursor } from '../types'
@@ -17,6 +17,8 @@ export function CalendarScreen({ data, cursor, selected, onCursor, onSelect, onO
   const today = todayKey()
   const prefix = monthPrefix(cursor)
   const selectedEntry = selected ? data.days[selected] : undefined
+  const monthSum = monthTotal(data, cursor)
+  const untilToday = monthTotalUntil(data, cursor)
 
   return (
     <div className="page">
@@ -24,6 +26,17 @@ export function CalendarScreen({ data, cursor, selected, onCursor, onSelect, onO
         <p className="eyebrow">달력 · 메모</p>
         <MonthBar cursor={cursor} onChange={onCursor} />
       </header>
+
+      <section className="cal-sum">
+        <div>
+          <span>이달 적은 돈</span>
+          <b>{formatMoney(monthSum)}</b>
+        </div>
+        <div>
+          <span>오늘까지 번 돈</span>
+          <b>{formatMoney(untilToday)}</b>
+        </div>
+      </section>
 
       <div className="cal-week">
         {WEEKDAYS.map((day) => (

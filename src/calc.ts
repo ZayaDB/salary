@@ -1,11 +1,11 @@
-import type { AppData, InsuranceRates, MonthCursor } from './types'
+import type { AppData, InsuranceAmounts, InsuranceRates, MonthCursor } from './types'
 
 export function floorWon(value: number): number {
   if (!Number.isFinite(value) || value <= 0) return 0
   return Math.floor(value)
 }
 
-export function calcInsurance(salary: number, rates: InsuranceRates) {
+export function calcInsuranceFromRates(salary: number, rates: InsuranceRates): InsuranceAmounts & { total: number } {
   const pension = floorWon((salary * rates.pension) / 100)
   const health = floorWon((salary * rates.health) / 100)
   const longTermCare = floorWon((health * rates.longTermCare) / 100)
@@ -13,6 +13,18 @@ export function calcInsurance(salary: number, rates: InsuranceRates) {
   const total = pension + health + longTermCare + employment
 
   return { pension, health, longTermCare, employment, total }
+}
+
+export function sumInsurance(amounts: InsuranceAmounts) {
+  return {
+    ...amounts,
+    total: amounts.pension + amounts.health + amounts.longTermCare + amounts.employment,
+  }
+}
+
+export function calcInsurance(data: Pick<AppData, 'contractSalary' | 'rates' | 'insuranceMode' | 'amounts'>) {
+  if (data.insuranceMode === 'amount') return sumInsurance(data.amounts)
+  return calcInsuranceFromRates(data.contractSalary, data.rates)
 }
 
 export function monthPrefix(cursor: MonthCursor): string {
@@ -46,6 +58,15 @@ export function monthTotal(data: AppData, cursor: MonthCursor): number {
   return total
 }
 
+export function monthTotalUntil(data: AppData, cursor: MonthCursor, until = todayKey()): number {
+  const prefix = monthPrefix(cursor)
+  let total = 0
+  for (const [key, entry] of Object.entries(data.days)) {
+    if (key.startsWith(prefix) && key <= until) total += entry.amount || 0
+  }
+  return total
+}
+
 export function monthDaysInGrid(cursor: MonthCursor) {
   const first = new Date(cursor.year, cursor.month, 1)
   const startWeekday = first.getDay()
@@ -61,7 +82,7 @@ export function monthDaysInGrid(cursor: MonthCursor) {
 
 export function settleMonth(data: AppData, cursor: MonthCursor) {
   const actual = monthTotal(data, cursor)
-  const insurance = calcInsurance(data.contractSalary, data.rates)
+  const insurance = calcInsurance(data)
   const officialPay = data.contractSalary - insurance.total
   const diff = actual - data.contractSalary
 
