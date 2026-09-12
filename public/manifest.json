@@ -1,0 +1,17 @@
+{
+  "name": "월급 장부",
+  "short_name": "월급장부",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3EDE3",
+  "theme_color": "#F3EDE3",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
